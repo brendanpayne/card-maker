@@ -112,7 +112,6 @@ button[type="download"] {
 }
 
 .card {
-  font-family: 'MyFont', sans-serif;
   background-image: url('../public/dogcard.png');
   background-size: cover;
   background-position: center;
@@ -200,7 +199,7 @@ button[type="download"] {
   font-family: 'ninjutsuBB', sans-serif;
   margin-top: 350px;
   margin-left: 28px;
-  font-size: 22px;
+  font-size: 24px;
   word-wrap: break-word;
   white-space: pre-wrap;
   text-align: justify;

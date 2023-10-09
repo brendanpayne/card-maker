@@ -3,12 +3,12 @@ import html2canvas from 'html2canvas';
 import './App.css';
 
 function CardGenerator() {
-  const [name, setName] = useState('');
-  const [number, setNumber] = useState('');
-  const [image, setImage] = useState('');
-  const [description, setDescription] = useState('');
-  const [group, setGroup] = useState('');
-  const [type, setType] = useState('');
+  const [name, setName] = useState('The Forbidden Move');
+  const [number, setNumber] = useState(1);
+  const [image, setImage] = useState('https://bit.ly/3F6LJM2');
+  const [description, setDescription] = useState('If you currently possess dumb-ass dog in your hand, gain 66 koku and discard each card.');
+  const [group, setGroup] = useState('᲼᲼');
+  const [type, setType] = useState('active');
   const cardRef = useRef(null);
 
   const handleSubmit = (event) => {
