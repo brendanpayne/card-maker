@@ -32,57 +32,62 @@ function CardGenerator() {
   const handleDownload = () => {
     html2canvas(cardRef.current).then((canvas) => {
       const link = document.createElement('a');
-      link.download = number ? `${number} - ${name}` : 'card.png';
+      link.download = 'card.png';
       link.href = canvas.toDataURL();
       link.click();
     });
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Name:
-          <input type="text" value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <label>
-          Number:
-          <input type="number" value={number} onChange={(event) => setNumber(event.target.value)} />
-        </label>
-        <label>
-          Group:
-          <select value={group} onChange={handleGroupChange}>
-            <option value="">Basic</option>
-            <option value="otto">Otto</option>
-            <option value="bushido">Bushido</option>
-            <option value="rat">Rat</option>
-            <option value="shop">Shop</option>
-            <option value="realm">Realm</option>
-          </select>
-        </label>
-        <label>
-          Image:
-          <input type="file" onChange={handleImageUpload} />
-        </label>
-        <label>
-          Description:
-          <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
-        </label>
-        <button type="submit">Generate Card</button>
-      </form>
-      <div className="card" ref={cardRef}>
-        <div className="card-header">
-          <h2 className={`card-name ${group}`}>{number} - {name}</h2>
-          {group && <p className={`card-group ${group}`}>{group}</p>}
+    <div className="container">
+      <div className="card-container">
+        <div className="card" ref={cardRef}>
+          <div className="card-header">
+            <h2 className={`card-name ${group}`}>{number} - {name}</h2>
+            {group && <p className={`card-group ${group}`}>{group}</p>}
+          </div>
+          <div className="card-image-container">
+            {image && (
+              <img className='card-image' src={image} alt={name} />
+            )}
+          </div>
+          <p className="card-description">{description}</p>
         </div>
-        {image && (
-          <img className='card-image' src={image} alt={name} />
-        )}
-        <p className="card-description">{description}</p>
       </div>
-      <button onClick={handleDownload}>Download Card</button>
+      <div className="settings">
+        <form onSubmit={handleSubmit}>
+          <label>
+            Name:
+            <input type="text" value={name} onChange={(event) => setName(event.target.value)} />
+          </label>
+          <label>
+            Number:
+            <input type="number" value={number} onChange={(event) => setNumber(event.target.value)} />
+          </label>
+          <label>
+            Group:
+            <select value={group} onChange={handleGroupChange}>
+              <option value="">Basic</option>
+              <option value="otto">Otto</option>
+              <option value="bushido">Bushido</option>
+              <option value="rat">Rat</option>
+              <option value="shop">Shop</option>
+              <option value="realm">Realm</option>
+            </select>
+          </label>
+          <label>
+            Image:
+            <input type="file" onChange={handleImageUpload} />
+          </label>
+          <label>
+            Description:
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
+          </label>
+          <button type='download' onClick={handleDownload}>Download your epic dog card!!</button>
+        </form>
+      </div>
     </div>
   );
-}
+};
 
 export default CardGenerator;

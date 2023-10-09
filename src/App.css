@@ -1,3 +1,88 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 50%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+input,
+select,
+textarea {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+button[type="submit"],
+button[type="button"] {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  background-color: #0077cc;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+button[type="download"] {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 8px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.card-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50%;
+}
+
 .card {
   font-family: 'MyFont', sans-serif;
   background-image: url('../public/dogcard.png');
@@ -7,6 +92,7 @@
   height: 584px;
   display: flex;
   flex-direction: column;
+  
 }
 
 .card-name {
@@ -45,17 +131,23 @@
 
 .card-description {
   font-family: 'ninjutsuBB', sans-serif;
-  margin-top: 20px;
+  margin-top: 360px;
   margin-left: 28px;
   font-size: 20px;
   word-wrap: break-word;
 }
 
-.card-image {
+.card-image-container {
   position: absolute;
-  top: 124px;
-  left: 32px;
+  margin-top: 80px;
+  margin-left: 32px;
   width: 342px;
   height: 342px;
+  overflow: hidden;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
