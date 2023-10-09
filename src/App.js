@@ -32,7 +32,7 @@ function CardGenerator() {
   const handleDownload = () => {
     html2canvas(cardRef.current).then((canvas) => {
       const link = document.createElement('a');
-      link.download = 'card.png';
+      link.download = (name && number) ? `${number} - ${name}.png` : 'card.png';
       link.href = canvas.toDataURL();
       link.click();
     });
@@ -48,7 +48,7 @@ function CardGenerator() {
           </div>
           <div className="card-image-container">
             {image && (
-              <img className='card-image' src={image} alt={name} />
+              <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />
             )}
           </div>
           <p className="card-description">{description}</p>
