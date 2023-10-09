@@ -11,3 +11,23 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@font-face {
+  font-family: 'BLAME';
+  src: url('../public/fonts/BLAME.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'ninjutsuBB';
+  src: url('../public/fonts/ninjutsuBB.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'ninjutsuBB_bold';
+  src: url('../public/fonts/ninjutsuBB_bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'ninjutsuBB_ital';
+  src: url('../public/fonts/ninjutsuBB_ital.ttf') format('truetype');
+}
