@@ -8,12 +8,11 @@ function CardGenerator() {
   const [image, setImage] = useState('');
   const [description, setDescription] = useState('');
   const [group, setGroup] = useState('');
+  const [type, setType] = useState('');
   const cardRef = useRef(null);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const cardName = `${number} - ${name}`;
-    // Store the information in state
   };
 
   const handleImageUpload = (event) => {
@@ -28,6 +27,10 @@ function CardGenerator() {
   const handleGroupChange = (event) => {
     setGroup(event.target.value);
   };
+
+  const handleTypeChange = (event) => {
+    setType(event.target.value);
+  }
 
   const handleDownload = () => {
     html2canvas(cardRef.current).then((canvas) => {
@@ -45,6 +48,9 @@ function CardGenerator() {
           <div className="card-header">
             <h2 className={`card-name ${group}`}>{number} - {name}</h2>
             {group && <p className={`card-group ${group}`}>{group}</p>}
+            {type && <p className={`card-type ${type}`}>
+              {type}<br></br>Card
+            </p>}
           </div>
           <div className="card-image-container">
             {image && (
@@ -67,12 +73,23 @@ function CardGenerator() {
           <label>
             Group:
             <select value={group} onChange={handleGroupChange}>
-              <option value="">Basic</option>
+              <option value="᲼᲼">Basic</option>
               <option value="otto">Otto</option>
               <option value="bushido">Bushido</option>
               <option value="rat">Rat</option>
               <option value="shop">Shop</option>
               <option value="realm">Realm</option>
+            </select>
+          </label>
+          <label>
+            Type:
+            <select value={type} onChange={handleTypeChange}>
+              <option value="">Select a Type</option>      
+              <option value="passive">Passive</option>
+              <option value="active">Active</option>
+              <option value="pre-turn">Pre-Turn</option>
+              <option value="aod">Active on Draw</option>
+              <option value="board">Board</option>
             </select>
           </label>
           <label>
