@@ -105,6 +105,10 @@ function CardGenerator() {
           <button type='download' onClick={handleDownload}>Download your epic dog card!!</button>
         </form>
       </div>
+      <div className="footer">
+        <p>Made by Basbo for Sethja8's <a href='https://steamcommunity.com/sharedfiles/filedetails/?id=2919654479'>DOG GAME - A Tabletop Simulator game.</a></p>
+        <p>Check out the <a href="https://github.com/brendanpayne/card-maker">source code</a>.</p>
+      </div>
     </div>
   );
 };
