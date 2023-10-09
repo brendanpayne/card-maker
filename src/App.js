@@ -79,6 +79,8 @@ function CardGenerator() {
               <option value="rat">Rat</option>
               <option value="shop">Shop</option>
               <option value="realm">Realm</option>
+              <option value="pit">Pit</option>
+              <option value="cultist">Cultist</option>
             </select>
           </label>
           <label>

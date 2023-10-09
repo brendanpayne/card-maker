@@ -134,27 +134,31 @@ button[type="download"] {
 }
 
 .card-group.otto {
-  color: gray;
+  color: 404040;
 }
 
 .card-group.bushido {
-  color: green;
+  color: #1B8031;
 }
 
 .card-group.rat {
-  color: blue;
+  color: #00127E;
 }
 
 .card-group.shop {
-  color: blue;
+  color: #0761B7;
 }
 
 .card-group.realm {
-  color: blue;
+  color: #7A0406;
 }
 
 .card-group.pit {
   color: #DB8D07;
+}
+
+.card-group.cultist {
+  color: #B200FF;
 }
 
 .card-type {
