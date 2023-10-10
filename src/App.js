@@ -41,15 +41,36 @@ function CardGenerator() {
     });
   };
 
+  const typeNames = {
+    'pre-turn': 'Pre-Turn Card',
+    'aod': 'Activate on Draw',
+    'board': 'Board Card',
+    'active': 'Active Card',
+    'passive': 'Passive Card',
+  };
+
+  const groupNames = {
+    '': '᲼᲼',
+    'otto': 'Otto',
+    'bushido': 'Bushido',
+    'rat': 'Rat',
+    'shop': 'Shop',
+    'realm': `Hitler's Realm`,
+    'pit': 'Pit',
+    'cultist': 'Cultist',
+  };
+
   return (
     <div className="container">
       <div className="card-container">
         <div className="card" ref={cardRef}>
           <div className="card-header">
             <h2 className={`card-name ${group}`}>{number} - {name}</h2>
-            {group && <p className={`card-group ${group}`}>{group}</p>}
+            {group && <p className={`card-group ${group}`}>
+              {group && <p className={`card-group ${group}`}>{groupNames[group]}</p>}
+              </p>}
             {type && <p className={`card-type ${type}`}>
-              {type}<br></br>Card
+              {type && <p className={`card-type ${type}`}>{typeNames[type]}</p>}
             </p>}
           </div>
           <div className="card-image-container">
@@ -90,10 +111,11 @@ function CardGenerator() {
               <option value="passive">Passive</option>
               <option value="active">Active</option>
               <option value="pre-turn">Pre-Turn</option>
-              <option value="aod">Active on Draw</option>
+              <option value="aod">Activate on Draw</option>
               <option value="board">Board</option>
             </select>
           </label>
+          
           <label>
             Image:
             <input type="file" onChange={handleImageUpload} />
