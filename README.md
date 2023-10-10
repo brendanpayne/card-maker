@@ -1,4 +1,4 @@
-#Trading Card Maker
+##Trading Card Maker
 Trading Card Maker is a web application created for a friend's tabletop simulator game. The application is built using JavaScript, npm, and React.
 
 ## Features
