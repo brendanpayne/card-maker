@@ -9,6 +9,8 @@ function CardGenerator() {
   const [description, setDescription] = useState('If you currently possess dumb-ass dog in your hand, gain 66 koku and discard each card.');
   const [group, setGroup] = useState('᲼᲼');
   const [type, setType] = useState('active');
+  const [tiltStyle, setTiltStyle] = useState({});
+  const [brightness, setBrightness] = useState(1);
   const cardRef = useRef(null);
 
   const handleSubmit = (event) => {
@@ -60,26 +62,69 @@ function CardGenerator() {
     'cultist': 'Cultist',
   };
 
+  const MaxTilt = 25;
+
+  const handleMouseMove = (evt) => {
+    let bounding = mouseOverBoundingElem(evt);
+  
+    let posX = bounding.width / 2 - bounding.x;
+    let posY = bounding.height / 2 - bounding.y;
+    let hypotenuseCursor = Math.sqrt(Math.pow(posX, 2) + Math.pow(posY, 2));
+    let hypotenuseMax = Math.sqrt(Math.pow(bounding.width / 2, 2) + Math.pow(bounding.height / 2, 2));
+    let ratio = hypotenuseCursor / hypotenuseMax;
+  
+    requestAnimationFrame(() => {
+      setTiltStyle({
+        transform: `rotate3d(${posY / hypotenuseCursor}, ${-posX / hypotenuseCursor}, 0, ${ratio * MaxTilt}deg)`
+      });
+  
+      setBrightness(1.3 - (bounding.y / bounding.height * 0.3));
+    });
+  };
+  
+  const handleMouseLeave = () => {
+    requestAnimationFrame(() => {
+      setTiltStyle({});
+      setBrightness(1);
+    });
+  };
+
+  const mouseOverBoundingElem = (evt) => {
+    let bounding = evt.currentTarget.getBoundingClientRect();
+    let x = evt.clientX - Math.round(bounding.left);
+    let y = evt.clientY - Math.round(bounding.top);
+  
+    return {
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      width: Math.round(bounding.width),
+      height: Math.round(bounding.height)
+    };
+  };
+
   return (
     <div className="container">
-      <div className="card-container">
-        <div className="card" ref={cardRef}>
-          <div className="card-header">
-            <h2 className={`card-name ${group}`}>{number} - {name}</h2>
-            {group && <p className={`card-group ${group}`}>
-              {group && <p className={`card-group ${group}`}>{groupNames[group]}</p>}
-              </p>}
-            {type && <p className={`card-type ${type}`}>
-              {type && <p className={`card-type ${type}`}>{typeNames[type]}</p>}
-            </p>}
+      <div className="card-container" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+          <div className="card" ref={cardRef}>
+            <div className="cover" style={{...tiltStyle, filter: `brightness(${brightness})`}}>
+            <div class="gloss">AAAAAAAAAA</div>
+              <div className="card-header">
+                <h2 className={`card-name ${group}`}>{number} - {name}</h2>
+                {group && <p className={`card-group ${group}`}>
+                  {group && <p className={`card-group ${group}`}>{groupNames[group]}</p>}
+                </p>}
+                {type && <p className={`card-type ${type}`}>
+                  {type && <p className={`card-type ${type}`}>{typeNames[type]}</p>}
+                </p>}
+              </div>
+              <div className="card-image-container">
+                {image && (
+                  <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />
+                )}
+              </div>
+              <p className="card-description">{description}</p>
+            </div>
           </div>
-          <div className="card-image-container">
-            {image && (
-              <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />
-            )}
-          </div>
-          <p className="card-description">{description}</p>
-        </div>
       </div>
       <div className="settings">
         <form onSubmit={handleSubmit}>
