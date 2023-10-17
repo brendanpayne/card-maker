@@ -3,20 +3,20 @@ import html2canvas from 'html2canvas';
 import './App.css';
 
 function CardGenerator() {
-  const [name, setName] = useState('The Forbidden Move');
-  const [number, setNumber] = useState(1);
-  const [image, setImage] = useState('https://bit.ly/3F6LJM2');
-  const [description, setDescription] = useState('If you currently possess dumb-ass dog in your hand, gain 66 koku and discard each card.');
+  const [name, setName] = useState('Scarlet Police');
+  const [number, setNumber] = useState(382);
+  const [image, setImage] = useState('https://media.discordapp.net/attachments/1161415113354518670/1163936982527914045/scarlet_police.jpg');
+  const [description, setDescription] = useState('Choose a player. They must return to their starting tile at the end of their turn until they move a cumulative 9 tiles, at which time this card is destroyed.');
   const [group, setGroup] = useState('᲼᲼');
   const [type, setType] = useState('active');
   const cardRef = useRef(null);
 
   const MAX_DESC_FONT_SIZE = 24;
-  let [descSize, setDescSize] = useState(MAX_DESC_FONT_SIZE);
+  const [descSize, setDescSize] = useState(MAX_DESC_FONT_SIZE);
   const descriptionRef = useRef(null);
 
   const MAX_NAME_FONT_SIZE = 14;
-  let [nameSize, setNameSize] = useState(MAX_NAME_FONT_SIZE);
+  const [nameSize, setNameSize] = useState(MAX_NAME_FONT_SIZE);
   const nameRef = useRef(null);
 
   const handleSubmit = (event) => {
@@ -53,10 +53,9 @@ function CardGenerator() {
   const handleNameChange = (event) => {
     setName(event.target.value);
     const nameWidth = nameRef.current.clientWidth;
-    console.log(nameWidth)
     if (nameWidth > 275) {
       setNameSize(nameSize - 1);
-    } else if (nameWidth < 250 && nameSize < MAX_NAME_FONT_SIZE) {
+    } else if (nameWidth < 265 && nameSize < MAX_NAME_FONT_SIZE) {
       setNameSize(nameSize + 1);
     }
   };
@@ -94,18 +93,12 @@ function CardGenerator() {
       <div className="card-container">
         <div className="card" ref={cardRef}>
           <div className="card-header">
-            <h2 className={`card-name ${group}`} ref={nameRef} style={ {fontSize: `${nameSize}px`} }>{number} - {name}</h2>
-            {group && <p className={`card-group ${group}`}>
-              {group && <p className={`card-group ${group}`}>{groupNames[group]}</p>}
-              </p>}
-            {type && <p className={`card-type ${type}`}>
-              {type && <p className={`card-type ${type}`}>{typeNames[type]}</p>}
-            </p>}
+            <h2 className={`card-name ${group}`} ref={nameRef} style={{ fontSize: `${nameSize}px` }}>{number} - {name}</h2>
+            {group && <p className={`card-group ${group}`}>{groupNames[group]}</p>}
+            {type && <p className={`card-type ${type}`}>{typeNames[type]}</p>}
           </div>
           <div className="card-image-container">
-            {image && (
-              <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />
-            )}
+            {image && <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />}
           </div>
           <p className="card-description" style={{ fontSize: `${descSize}px` }} ref={descriptionRef}>{description}</p>
         </div>
