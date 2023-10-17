@@ -10,9 +10,14 @@ function CardGenerator() {
   const [group, setGroup] = useState('᲼᲼');
   const [type, setType] = useState('active');
   const cardRef = useRef(null);
-  const MAX_FONT_SIZE = 24;
-  let [fontSize, setFontSize] = useState(MAX_FONT_SIZE);
+
+  const MAX_DESC_FONT_SIZE = 24;
+  let [descSize, setDescSize] = useState(MAX_DESC_FONT_SIZE);
   const descriptionRef = useRef(null);
+
+  const MAX_NAME_FONT_SIZE = 14;
+  let [nameSize, setNameSize] = useState(MAX_NAME_FONT_SIZE);
+  const nameRef = useRef(null);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -39,9 +44,20 @@ function CardGenerator() {
     setDescription(event.target.value);
     const descriptionHeight = descriptionRef.current.clientHeight;
     if (descriptionHeight > 125) {
-      setFontSize(fontSize - 1);
-    } else if (descriptionHeight < 99 && fontSize < MAX_FONT_SIZE) {
-      setFontSize(fontSize + 1);
+      setDescSize(descSize - 1);
+    } else if (descriptionHeight < 99 && descSize < MAX_DESC_FONT_SIZE) {
+      setDescSize(descSize + 1);
+    }
+  };
+
+  const handleNameChange = (event) => {
+    setName(event.target.value);
+    const nameWidth = nameRef.current.clientWidth;
+    console.log(nameWidth)
+    if (nameWidth > 275) {
+      setNameSize(nameSize - 1);
+    } else if (nameWidth < 250 && nameSize < MAX_NAME_FONT_SIZE) {
+      setNameSize(nameSize + 1);
     }
   };
 
@@ -78,7 +94,7 @@ function CardGenerator() {
       <div className="card-container">
         <div className="card" ref={cardRef}>
           <div className="card-header">
-            <h2 className={`card-name ${group}`}>{number} - {name}</h2>
+            <h2 className={`card-name ${group}`} ref={nameRef} style={ {fontSize: `${nameSize}px`} }>{number} - {name}</h2>
             {group && <p className={`card-group ${group}`}>
               {group && <p className={`card-group ${group}`}>{groupNames[group]}</p>}
               </p>}
@@ -91,14 +107,14 @@ function CardGenerator() {
               <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />
             )}
           </div>
-          <p className="card-description" style={{ fontSize: `${fontSize}px` }} ref={descriptionRef}>{description}</p>
+          <p className="card-description" style={{ fontSize: `${descSize}px` }} ref={descriptionRef}>{description}</p>
         </div>
       </div>
       <div className="settings">
         <form onSubmit={handleSubmit}>
           <label>
             Name:
-            <input type="text" value={name} onChange={(event) => setName(event.target.value)} />
+            <input type="text" value={name} onChange={handleNameChange} />
           </label>
           <label>
             Number:

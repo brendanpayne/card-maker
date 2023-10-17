@@ -123,6 +123,7 @@ button[type="download"] {
 }
 
 .card-name {
+  position: absolute;
   font-family: 'BLAME', sans-serif;
   margin-top: 12px;
   margin-left: 28px;
@@ -130,9 +131,9 @@ button[type="download"] {
 }
 
 .card-group {
-  position: absolute;
+  position: inherit;
   font-family: 'BLAME', sans-serif;
-  margin-top: -5px;
+  margin-top: 52px;
   margin-left: 15px;
   font-size: 14px;
   width: 200px;
