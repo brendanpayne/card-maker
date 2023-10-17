@@ -68,7 +68,7 @@ function CardGenerator() {
     'bushido': 'Bushido',
     'rat': 'Rat',
     'shop': 'Shop',
-    'realm': `His Realm`,
+    'realm': `Hitler's Realm`,
     'pit': 'Pit',
     'cultist': 'Cultist',
   };
