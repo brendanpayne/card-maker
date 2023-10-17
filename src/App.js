@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import './App.css';
 
@@ -10,6 +10,9 @@ function CardGenerator() {
   const [group, setGroup] = useState('᲼᲼');
   const [type, setType] = useState('active');
   const cardRef = useRef(null);
+  const MAX_FONT_SIZE = 24;
+  let [fontSize, setFontSize] = useState(MAX_FONT_SIZE);
+  const descriptionRef = useRef(null);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -32,6 +35,16 @@ function CardGenerator() {
     setType(event.target.value);
   }
 
+  const handleDescriptionChange = (event) => {
+    setDescription(event.target.value);
+    const descriptionHeight = descriptionRef.current.clientHeight;
+    if (descriptionHeight > 125) {
+      setFontSize(fontSize - 1);
+    } else if (descriptionHeight < 99 && fontSize < MAX_FONT_SIZE) {
+      setFontSize(fontSize + 1);
+    }
+  };
+
   const handleDownload = () => {
     html2canvas(cardRef.current).then((canvas) => {
       const link = document.createElement('a');
@@ -50,12 +63,12 @@ function CardGenerator() {
   };
 
   const groupNames = {
-    '': '᲼᲼',
+    '': 'Basic',
     'otto': 'Otto',
     'bushido': 'Bushido',
     'rat': 'Rat',
     'shop': 'Shop',
-    'realm': `Hitler's Realm`,
+    'realm': `His Realm`,
     'pit': 'Pit',
     'cultist': 'Cultist',
   };
@@ -78,7 +91,7 @@ function CardGenerator() {
               <img className='card-image' src={image || '../public/placeholder.png'} alt={name} />
             )}
           </div>
-          <p className="card-description">{description}</p>
+          <p className="card-description" style={{ fontSize: `${fontSize}px` }} ref={descriptionRef}>{description}</p>
         </div>
       </div>
       <div className="settings">
@@ -94,35 +107,27 @@ function CardGenerator() {
           <label>
             Group:
             <select value={group} onChange={handleGroupChange}>
-              <option value="᲼᲼">Basic</option>
-              <option value="otto">Otto</option>
-              <option value="bushido">Bushido</option>
-              <option value="rat">Rat</option>
-              <option value="shop">Shop</option>
-              <option value="realm">Realm</option>
-              <option value="pit">Pit</option>
-              <option value="cultist">Cultist</option>
+              {Object.keys(groupNames).map((key) => (
+                <option key={key} value={key}>{groupNames[key]}</option>
+              ))}
             </select>
           </label>
           <label>
             Type:
             <select value={type} onChange={handleTypeChange}>
-              <option value="">Select a Type</option>      
-              <option value="passive">Passive</option>
-              <option value="active">Active</option>
-              <option value="pre-turn">Pre-Turn</option>
-              <option value="aod">Activate on Draw</option>
-              <option value="board">Board</option>
+              <option value="">Select a Type</option>
+              {Object.keys(typeNames).map((key) => (
+                <option key={key} value={key}>{typeNames[key]}</option>
+              ))}
             </select>
           </label>
-          
           <label>
             Image:
             <input type="file" onChange={handleImageUpload} />
           </label>
           <label>
             Description:
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
+            <textarea value={description} onChange={handleDescriptionChange} />
           </label>
           <button type='download' onClick={handleDownload}>Download your epic dog card!!</button>
         </form>
