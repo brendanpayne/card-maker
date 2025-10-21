@@ -5,17 +5,17 @@ import './App.css';
 function CardGenerator() {
   const [name, setName] = useState('Scarlet Police');
   const [number, setNumber] = useState(382);
-  const [image, setImage] = useState('https://media.discordapp.net/attachments/1161415113354518670/1163936982527914045/scarlet_police.jpg');
+  const [image, setImage] = useState('https://files.catbox.moe/psyyjr.jpg');
   const [description, setDescription] = useState('Choose a player. They must return to their starting tile at the end of their turn until they move a cumulative 9 tiles, at which time this card is destroyed.');
   const [group, setGroup] = useState('᲼᲼');
   const [type, setType] = useState('active');
   const cardRef = useRef(null);
 
-  const MAX_DESC_FONT_SIZE = 24;
+  const MAX_DESC_FONT_SIZE = 28;
   const [descSize, setDescSize] = useState(MAX_DESC_FONT_SIZE);
   const descriptionRef = useRef(null);
 
-  const MAX_NAME_FONT_SIZE = 14;
+  const MAX_NAME_FONT_SIZE = 24;
   const [nameSize, setNameSize] = useState(MAX_NAME_FONT_SIZE);
   const nameRef = useRef(null);
 

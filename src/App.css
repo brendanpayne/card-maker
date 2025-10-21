@@ -4,7 +4,7 @@ html, body {
 
 body {
   display: flex;
-  background-image: url('../public/bg.jpg');
+  background-image: url('../public/bg.png');
   background-size: cover;
   background-position: center;
   flex-direction: column;
@@ -124,18 +124,18 @@ button[type="download"] {
 
 .card-name {
   position: absolute;
-  font-family: 'BLAME', sans-serif;
-  margin-top: 12px;
+  font-family: 'KOMTIT', sans-serif;
+  margin-top: 10px;
   margin-left: 28px;
-  font-size: 14px;
+  font-size: 100px;
 }
 
 .card-group {
   position: absolute;
-  font-family: 'BLAME', sans-serif;
-  margin-top: 40px;
+  font-family: 'KOMTIT', sans-serif;
+  margin-top: 36px;
   margin-left: 28px;
-  font-size: 14px;
+  font-size: 24px;
   width: 200px;
 }
 
@@ -169,11 +169,12 @@ button[type="download"] {
 
 .card-type {
   position: inherit;
-  font-family: 'BLAME', sans-serif;
-  margin-top: 10px;
+  font-family: 'KOMTIT', sans-serif;
+  line-height: 1;
+  margin-top: 16px;
   margin-left: auto;
   margin-right: 28px;
-  font-size: 14px;
+  font-size: 24px;
   text-align: justify;
   max-width : 100px;
   text-align: right;
@@ -201,10 +202,12 @@ button[type="download"] {
 
 .card-description {
   position: absolute;
-  font-family: 'ninjutsuBB', sans-serif;
+  line-height: 0.8;
+  font-family: 'Patrick Hand SC', sans-serif;
   margin-top: 440px;
   margin-left: 28px;
-  font-size: 24px;
+  font-size: 100px;
+  font-weight: 400;
   word-wrap: break-word;
   white-space: pre-wrap;
   text-align: justify;
