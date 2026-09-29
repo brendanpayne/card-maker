@@ -415,6 +415,8 @@ textarea {
   border: 1px solid var(--input-border);
   border-radius: 8px;
   background-color: var(--toggle-bg);
+  color: var(--panel-text);
+  font-family: inherit;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -571,6 +573,79 @@ textarea {
   }
 }
 
+/* ---- Image adjuster: drag layer over the art window, plus a hint popup ---- */
+
+.adjust-frame {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  border: 2px dashed rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  touch-action: none;
+}
+
+.adjust-frame:active {
+  cursor: grabbing;
+}
+
+.adjust-frame:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.adjust-popup {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+  background-color: var(--panel-bg);
+  color: var(--panel-text);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: popup-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.adjust-hint {
+  margin: 0;
+  font-size: 14px;
+}
+
+.adjust-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.adjust-actions .secondary-button {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.96);
+  }
+}
+
+.file-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.file-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background-color: var(--chip-checked-bg);
+}
+
 /* ---- Bar thumbnail: a live mini card beside the button while the preview is scrolled away ---- */
 
 .bar-thumb {
@@ -717,7 +792,8 @@ textarea {
     animation: stamp-out 500ms ease-in 4.4s forwards;
   }
 
-  .bar-thumb {
+  .bar-thumb,
+  .adjust-popup {
     animation: none;
   }
 }
@@ -789,10 +865,18 @@ textarea {
   overflow: hidden;
 }
 
+/* Size and position come inline from the crop (see imageStyle in App.js). These values
+   are only the fallback while the image's natural size is still unknown. */
 .card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
   width: 100%;
   height: 100%;
+  max-width: none;
   object-fit: cover;
+  user-select: none;
 }
 
 .card-image-empty {

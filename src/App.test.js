@@ -114,9 +114,46 @@ test('start fresh clears the card and can be undone', () => {
   render(<App />);
   fireEvent.click(screen.getByRole('button', { name: 'Start fresh' }));
   expect(screen.getByLabelText(/name/i)).toHaveValue('');
-  expect(screen.getByText('No doggo yet.', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('No dog yet.', { exact: false })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
   expect(screen.getByRole('heading', { name: '382 - Scarlet Police' })).toBeInTheDocument();
+});
+
+// jsdom never loads images, so give the card image a natural size and fire its load event.
+const loadCardImage = (width, height) => {
+  const img = document.querySelector('.preview .card-image');
+  Object.defineProperty(img, 'naturalWidth', { value: width });
+  Object.defineProperty(img, 'naturalHeight', { value: height });
+  fireEvent.load(img);
+  return img;
+};
+
+test('a wide image fills the art window without stretching', () => {
+  render(<App />);
+  const img = loadCardImage(800, 400);
+  // Scaled to cover the 342px square: height 342, width 684, centred horizontally.
+  expect(img).toHaveStyle({ width: '684px', height: '342px', left: '-171px', top: '0px' });
+});
+
+test('the adjust popup moves and zooms the image, clamped to the art window', () => {
+  render(<App />);
+  const img = loadCardImage(800, 400);
+  fireEvent.click(screen.getByRole('button', { name: 'Adjust' }));
+  expect(screen.getByRole('dialog', { name: 'Adjust image' })).toHaveTextContent('Drag to move');
+
+  const frame = screen.getByLabelText(/drag or use the arrow keys/i);
+  fireEvent.keyDown(frame, { key: 'ArrowRight' });
+  expect(img).toHaveStyle({ left: '-161px' });
+
+  // Can't drag past the image's edge: 171px is as far right as it goes.
+  for (let i = 0; i < 30; i += 1) fireEvent.keyDown(frame, { key: 'ArrowRight' });
+  expect(img).toHaveStyle({ left: '0px' });
+
+  fireEvent.keyDown(frame, { key: '+' });
+  expect(parseFloat(img.style.height)).toBeGreaterThan(342);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  expect(screen.queryByRole('dialog', { name: 'Adjust image' })).not.toBeInTheDocument();
 });
 
 test('after a download, next card keeps the group and type and bumps the number', async () => {

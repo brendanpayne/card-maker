@@ -23,7 +23,7 @@ const MAX_NAME_WIDTH = 250;
 const SAVED_MESSAGE_MS = 5000;
 const UNDO_MS = 8000;
 const AUTOSAVE_DELAY_MS = 400;
-const DOG_GAME_URL = 'https://steamcommunity.com/sharedfiles/filedetails/?id=2919654479';
+const DOG_GAME_URL = 'https://steamcommunity.com/sharedfiles/filedetails/?id=3120904158';
 
 // Label and printed colour for each group and type. The colour is used both on the
 // card and on the picker swatches, so this is the single source for both.
@@ -50,6 +50,8 @@ const types = {
 const SAMPLE_IMAGE_NAME = 'Sample art (382.jpg)';
 const NO_IMAGE_NAME = 'No image yet';
 const SAMPLE_IMAGE_URL = `${process.env.PUBLIC_URL}/382.jpg`;
+// Image framing on the card: see the crop helpers below.
+const DEFAULT_CROP = { zoom: 1, x: 0, y: 0 };
 
 // The example card shown on a first visit. `imageSource` is 'sample', 'upload' or 'none';
 // an uploaded image lives in IndexedDB (see draftStore.js), not in the draft itself.
@@ -61,6 +63,7 @@ const SAMPLE_CARD = {
   description: 'Choose a player. They must return to their starting tile at the end of their turn until they move a cumulative 9 tiles, at which time this card is destroyed.',
   imageSource: 'sample',
   imageName: SAMPLE_IMAGE_NAME,
+  crop: DEFAULT_CROP,
 };
 
 // Merge a stored draft over the sample, dropping anything malformed or no longer valid.
@@ -75,7 +78,52 @@ const restoreCard = (draft) => {
     description: text(draft.description, SAMPLE_CARD.description),
     imageSource: ['sample', 'upload', 'none'].includes(draft.imageSource) ? draft.imageSource : 'sample',
     imageName: text(draft.imageName, SAMPLE_IMAGE_NAME),
+    crop: restoreCrop(draft.crop),
   };
+};
+
+// ---- Image crop ----
+// The art window on the card is a 342px square at (32, 80). `crop` is { zoom, x, y }: zoom 1
+// fills the window edge to edge (like object-fit: cover), and x/y shift the image in card px.
+// The image is laid out with explicit size and position because html2canvas ignores object-fit.
+const FRAME_SIZE = 342;
+const FRAME_LEFT = 32;
+const FRAME_TOP = 80;
+const MAX_ZOOM = 4;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const imageBox = (size, zoom) => {
+  const base = Math.max(FRAME_SIZE / size.w, FRAME_SIZE / size.h);
+  return { w: size.w * base * zoom, h: size.h * base * zoom };
+};
+
+// Keep the zoom in range and the image covering the whole window.
+const clampCrop = (size, crop) => {
+  const zoom = clamp(crop.zoom, 1, MAX_ZOOM);
+  if (!size) return { ...crop, zoom };
+  const box = imageBox(size, zoom);
+  const maxX = (box.w - FRAME_SIZE) / 2;
+  const maxY = (box.h - FRAME_SIZE) / 2;
+  return { zoom, x: clamp(crop.x, -maxX, maxX), y: clamp(crop.y, -maxY, maxY) };
+};
+
+const imageStyle = (size, crop) => {
+  if (!size) return undefined; // Until the image loads, CSS object-fit covers the window.
+  const box = imageBox(size, crop.zoom);
+  return {
+    width: box.w,
+    height: box.h,
+    left: (FRAME_SIZE - box.w) / 2 + crop.x,
+    top: (FRAME_SIZE - box.h) / 2 + crop.y,
+    objectFit: 'fill',
+  };
+};
+
+const restoreCrop = (crop) => {
+  const num = (value, fallback) => (Number.isFinite(value) ? value : fallback);
+  if (!crop || typeof crop !== 'object') return DEFAULT_CROP;
+  return { zoom: clamp(num(crop.zoom, 1), 1, MAX_ZOOM), x: num(crop.x, 0), y: num(crop.y, 0) };
 };
 
 const cardTitle = (number, name) => [number, name.trim()].filter(Boolean).join(' - ');
@@ -135,7 +183,7 @@ const getPreviewScale = () => {
 
 // The card artwork. Rendered once as the real preview (with refs, measured and exported)
 // and once as the small mobile peek.
-function CardFace({ cardRef, nameRef, descriptionRef, number, name, group, type, image, description, nameSize, descSize }) {
+function CardFace({ cardRef, nameRef, descriptionRef, number, name, group, type, image, imageSize, crop, onImageLoad, description, nameSize, descSize }) {
   return (
     <div className="card" ref={cardRef}>
       <div className="card-header">
@@ -145,11 +193,120 @@ function CardFace({ cardRef, nameRef, descriptionRef, number, name, group, type,
       </div>
       <div className="card-image-container">
         {image
-          ? <img className='card-image' src={image} alt={name} />
-          : <p className="card-image-empty">No doggo yet.<br />Choose an image to add one.</p>}
+          ? (
+            <img
+              className='card-image'
+              src={image}
+              alt={name}
+              draggable={false}
+              style={imageStyle(imageSize, crop)}
+              onLoad={onImageLoad && ((event) => onImageLoad({ w: event.target.naturalWidth, h: event.target.naturalHeight }))}
+            />
+          )
+          : <p className="card-image-empty">No dog yet.<br />Choose an image to add one.</p>}
       </div>
       <p className="card-description" style={{ fontSize: `${descSize}px` }} ref={descriptionRef}>{description}</p>
     </div>
+  );
+}
+
+// Drag/zoom layer over the card's art window, plus a small popup explaining the controls.
+// It sits outside `.card`, so it never appears in the exported PNG. `scale` is the preview's
+// on-screen scale, used to convert pointer movement back into card pixels.
+function ImageAdjuster({ scale, crop, onChange, onReset, onDone }) {
+  const frameRef = useRef(null);
+  const pointers = useRef(new Map());
+  // Handlers read the latest values through refs, so the native wheel listener stays current.
+  const latest = useRef({ crop, onChange });
+  latest.current = { crop, onChange };
+  const touch = !!window.matchMedia?.('(pointer: coarse)').matches;
+
+  const zoomBy = (factor) => {
+    const { crop: current, onChange: change } = latest.current;
+    const zoom = clamp(current.zoom * factor, 1, MAX_ZOOM);
+    const ratio = zoom / current.zoom;
+    change({ zoom, x: current.x * ratio, y: current.y * ratio });
+  };
+
+  const moveBy = (dx, dy) => {
+    const { crop: current, onChange: change } = latest.current;
+    change({ ...current, x: current.x + dx, y: current.y + dy });
+  };
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+    frame.focus({ preventScroll: true });
+    // A native, non-passive listener so the wheel zooms the image instead of scrolling the page.
+    const handleWheel = (event) => {
+      event.preventDefault();
+      zoomBy(Math.exp(-event.deltaY * 0.0015));
+    };
+    frame.addEventListener('wheel', handleWheel, { passive: false });
+    return () => frame.removeEventListener('wheel', handleWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handlePointerDown = (event) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  };
+
+  const handlePointerMove = (event) => {
+    const active = pointers.current;
+    const previous = active.get(event.pointerId);
+    if (!previous) return;
+    const next = { x: event.clientX, y: event.clientY };
+    if (active.size === 1) {
+      moveBy((next.x - previous.x) / scale, (next.y - previous.y) / scale);
+    } else if (active.size === 2) {
+      // Pinch: zoom by how much the distance between the two fingers changed.
+      const [, other] = [...active.entries()].find(([id]) => id !== event.pointerId);
+      const before = Math.hypot(previous.x - other.x, previous.y - other.y);
+      const after = Math.hypot(next.x - other.x, next.y - other.y);
+      if (before > 0) zoomBy(after / before);
+    }
+    active.set(event.pointerId, next);
+  };
+
+  const handlePointerUp = (event) => {
+    pointers.current.delete(event.pointerId);
+  };
+
+  const handleKeyDown = (event) => {
+    const moves = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] };
+    if (moves[event.key]) moveBy(...moves[event.key]);
+    else if (event.key === '+' || event.key === '=') zoomBy(1.1);
+    else if (event.key === '-') zoomBy(1 / 1.1);
+    else if (event.key === 'Escape' || event.key === 'Enter') onDone();
+    else return;
+    event.preventDefault();
+  };
+
+  return (
+    <>
+      <div
+        ref={frameRef}
+        className="adjust-frame"
+        tabIndex={0}
+        aria-label="Card image. Drag or use the arrow keys to move it; scroll, pinch or press plus and minus to zoom."
+        style={{ left: FRAME_LEFT * scale, top: FRAME_TOP * scale, width: FRAME_SIZE * scale, height: FRAME_SIZE * scale }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onKeyDown={handleKeyDown}
+      />
+      <div className="adjust-popup" role="dialog" aria-label="Adjust image" style={{ top: (FRAME_TOP + FRAME_SIZE + 10) * scale }}>
+        <p className="adjust-hint">
+          <strong>Drag</strong> to move · <strong>{touch ? 'Pinch' : 'Scroll'}</strong> to zoom
+        </p>
+        <div className="adjust-actions">
+          <button type="button" className="text-button" onClick={onReset}>Reset</button>
+          <button type="button" className="secondary-button" onClick={onDone}>Done</button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -195,6 +352,10 @@ function CardGenerator() {
   // An uploaded image loads asynchronously from IndexedDB, so it starts empty.
   const [image, setImage] = useState(start.imageSource === 'sample' ? SAMPLE_IMAGE_URL : null);
   const [imageName, setImageName] = useState(start.imageName);
+  const [imageSize, setImageSize] = useState(null);
+  const [crop, setCrop] = useState(start.crop);
+  const [adjusting, setAdjusting] = useState(false);
+  const adjustButtonRef = useRef(null);
   const [description, setDescription] = useState(start.description);
   const [group, setGroup] = useState(start.group);
   const [type, setType] = useState(start.type);
@@ -319,6 +480,7 @@ function CardGenerator() {
     loadDraftImage().then((dataUrl) => {
       if (cancelled) return;
       if (dataUrl) {
+        setImageSize(null);
         setImage(dataUrl);
       } else {
         setImageSource('none');
@@ -332,10 +494,10 @@ function CardGenerator() {
   useEffect(() => {
     if (!hasEdited) return;
     const timer = setTimeout(() => {
-      saveDraft({ name, number, group, type, description, imageSource, imageName });
+      saveDraft({ name, number, group, type, description, imageSource, imageName, crop });
     }, AUTOSAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [hasEdited, name, number, group, type, description, imageSource, imageName]);
+  }, [hasEdited, name, number, group, type, description, imageSource, imageName, crop]);
 
   // Wraps a setter so any change also marks the card as edited.
   const edit = (setter) => (value) => {
@@ -349,9 +511,12 @@ function CardGenerator() {
     setGroup(card.group);
     setType(card.type);
     setDescription(card.description);
+    if (card.image !== image) setImageSize(null);
     setImage(card.image);
     setImageSource(card.imageSource);
     setImageName(card.imageName);
+    setCrop(card.crop);
+    setAdjusting(false);
     setImageError('');
     setDownloadStatus('idle');
     setHasEdited(true);
@@ -361,12 +526,12 @@ function CardGenerator() {
 
   // Replace the card, keeping the old one for a few seconds so the change can be undone.
   const replaceCard = (next, message) => {
-    const previous = { name, number, group, type, description, image, imageSource, imageName };
+    const previous = { name, number, group, type, description, image, imageSource, imageName, crop };
     applyCard(next);
     setUndo({ previous, message });
   };
 
-  const blankImage = { image: null, imageSource: 'none', imageName: NO_IMAGE_NAME };
+  const blankImage = { image: null, imageSource: 'none', imageName: NO_IMAGE_NAME, crop: DEFAULT_CROP };
 
   const startFresh = () => {
     replaceCard({ name: '', number: '', group: '', type: '', description: '', ...blankImage }, 'Card cleared.');
@@ -402,12 +567,17 @@ function CardGenerator() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
+      setImageSize(null);
       setImage(dataUrl);
       setImageSource('upload');
       setImageName(file.name);
+      setCrop(DEFAULT_CROP);
       setHasEdited(true);
       saveDraftImage(dataUrl);
+      openAdjuster();
     };
+    // Let the same file be picked again later (e.g. after Start fresh).
+    event.target.value = '';
     reader.onerror = () => {
       setImageError(`Couldn't read "${file.name}". Try a different image.`);
     };
@@ -416,6 +586,27 @@ function CardGenerator() {
 
   const scrollToPreview = () => {
     previewRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  };
+
+  const handleImageLoad = (size) => {
+    setImageSize(size);
+    // A restored crop may not fit a different image size; pull it back in range.
+    setCrop((current) => clampCrop(size, current));
+  };
+
+  const updateCrop = (next) => {
+    setCrop(clampCrop(imageSize, next));
+    setHasEdited(true);
+  };
+
+  const openAdjuster = () => {
+    setAdjusting(true);
+    if (isStackedLayout()) scrollToPreview();
+  };
+
+  const closeAdjuster = () => {
+    setAdjusting(false);
+    adjustButtonRef.current?.focus({ preventScroll: true });
   };
 
   const handleDownload = async () => {
@@ -467,7 +658,7 @@ function CardGenerator() {
   };
 
   const isScaled = previewScale < 1;
-  const cardProps = { number, name, group, type, image, description, nameSize, descSize };
+  const cardProps = { number, name, group, type, image, imageSize, crop, description, nameSize, descSize };
   const descTooSmall = !descOverflow && descSize < SMALL_DESC_FONT_SIZE;
   const showThumb = stacked && !previewInView;
 
@@ -480,9 +671,24 @@ function CardGenerator() {
             style={isScaled ? { width: CARD_WIDTH * previewScale, height: CARD_HEIGHT * previewScale } : undefined}
           >
             <div className="card-scaler" style={isScaled ? { transform: `scale(${previewScale})` } : undefined}>
-              <CardFace {...cardProps} cardRef={cardRef} nameRef={nameRef} descriptionRef={descriptionRef} />
+              <CardFace
+                {...cardProps}
+                cardRef={cardRef}
+                nameRef={nameRef}
+                descriptionRef={descriptionRef}
+                onImageLoad={handleImageLoad}
+              />
             </div>
           </div>
+          {adjusting && image && (
+            <ImageAdjuster
+              scale={previewScale}
+              crop={crop}
+              onChange={updateCrop}
+              onReset={() => updateCrop(DEFAULT_CROP)}
+              onDone={closeAdjuster}
+            />
+          )}
           {downloadStatus === 'saved' && <div className="saved-stamp" aria-hidden="true">SAVED!</div>}
         </section>
 
@@ -541,9 +747,19 @@ function CardGenerator() {
                     aria-describedby="image-hint"
                   />
                   <label htmlFor="image-input" className="file-button">Choose image</label>
+                  <button
+                    ref={adjustButtonRef}
+                    type="button"
+                    className="file-button"
+                    onClick={adjusting ? closeAdjuster : openAdjuster}
+                    disabled={!image}
+                    aria-pressed={adjusting}
+                  >
+                    Adjust
+                  </button>
                   <span className="file-name">{imageName}</span>
                 </div>
-                <p id="image-hint" className="field-note">Cropped to a square, so keep your dog in the middle.</p>
+                <p id="image-hint" className="field-note">Cropped to a square. Use Adjust to move or zoom it.</p>
                 {imageError && <p className="field-note field-note--error" role="alert">{imageError}</p>}
               </div>
               <label className="field">
