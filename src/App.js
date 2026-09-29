@@ -759,7 +759,7 @@ function CardGenerator() {
                   </button>
                   <span className="file-name">{imageName}</span>
                 </div>
-                <p id="image-hint" className="field-note">Cropped to a square. Use Adjust to move or zoom it.</p>
+                <p id="image-hint" className="field-note">Use Adjust to move or zoom the image.</p>
                 {imageError && <p className="field-note field-note--error" role="alert">{imageError}</p>}
               </div>
               <label className="field">
