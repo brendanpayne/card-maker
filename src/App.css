@@ -103,7 +103,7 @@ body {
 .settings {
   width: 460px;
   max-width: 100%;
-  padding: 24px 28px 28px;
+  padding: 24px 28px 0;
   box-sizing: border-box;
   color: var(--panel-text);
   background-color: var(--panel-bg);
@@ -114,13 +114,13 @@ body {
 .settings-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
   margin-bottom: 20px;
 }
 
 .app-title {
-  margin: 0;
+  flex: 1;
+  margin: 0 8px 0 0;
   font-family: 'KOMTIT', sans-serif;
   font-size: 26px;
   font-weight: normal;
@@ -328,6 +328,12 @@ textarea {
   transition: border-color 150ms ease-out, background-color 150ms ease-out;
 }
 
+@media (pointer: coarse) {
+  .chip-face {
+    min-height: 44px;
+  }
+}
+
 .chip-face:hover {
   border-color: var(--accent);
 }
@@ -434,14 +440,31 @@ textarea {
 
 /* ---- Download ---- */
 
+/* Sticks to the bottom of the screen while the form is in view, so the download
+   button is always reachable, even on short laptop screens. */
 .download-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  margin: 0 -28px;
+  padding: 14px 28px 16px;
+  background-color: var(--panel-bg);
+  border-top: 1px solid var(--panel-rule);
+  border-radius: 0 0 14px 14px;
+}
+
+.download-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .download-button {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   min-height: 58px;
   padding: 12px 20px;
   border: none;
@@ -456,8 +479,13 @@ textarea {
   transition: background-color 150ms ease-out;
 }
 
-.download-button[data-status="idle"] {
+/* Pulses once the user has made changes, and holds still while they are typing. */
+.download-button[data-pulse="true"] {
   animation: pulse 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.form-section:focus-within ~ .download-bar .download-button {
+  animation-play-state: paused;
 }
 
 .download-button:hover {
@@ -543,48 +571,154 @@ textarea {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .download-button[data-status="idle"] {
-    animation: none;
-  }
+/* ---- Bar thumbnail: a live mini card beside the button while the preview is scrolled away ---- */
 
-  .saved-stamp {
-    animation: stamp-out 500ms ease-in 4.4s forwards;
-  }
-}
-
-/* ---- Mobile peek: a small live card while the full preview is scrolled away ---- */
-
-.preview-peek {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  width: calc(407px * 0.28);
-  height: calc(584px * 0.28);
+.bar-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: calc(407px * 0.13);
+  height: calc(584px * 0.13);
   padding: 0;
   overflow: hidden;
-  border: 2px solid #ffffff;
-  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
   background: none;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  animation: peek-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: thumb-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.preview-peek:focus-visible {
+.bar-thumb:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
-.preview-peek .card-scaler {
+.bar-thumb .card-scaler {
   pointer-events: none;
 }
 
-@keyframes peek-in {
+@keyframes thumb-in {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: scale(0.85);
+  }
+}
+
+.thumb-stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 1px 3px 0;
+  border: 2px solid #1B8031;
+  border-radius: 3px;
+  background-color: rgba(251, 248, 241, 0.92);
+  color: #1B8031;
+  font-family: 'KOMTIT', sans-serif;
+  font-size: 11px;
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  animation:
+    stamp-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both,
+    stamp-out 500ms ease-in 4.4s forwards;
+}
+
+/* ---- After-download actions and undo ---- */
+
+.bar-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.undo-notice {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.text-button {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--panel-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  background-color: var(--toggle-hover-bg);
+}
+
+.text-button:focus-visible,
+.secondary-button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.secondary-button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+  background-color: var(--toggle-bg);
+  color: var(--panel-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background-color: var(--toggle-hover-bg);
+}
+
+/* ---- Tabletop Simulator help ---- */
+
+.help {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--panel-muted);
+}
+
+.help summary {
+  width: fit-content;
+  padding: 4px 0;
+  font-weight: 600;
+  color: var(--panel-text);
+  cursor: pointer;
+}
+
+.help summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.help p {
+  margin: 6px 0 0;
+}
+
+.help a {
+  color: var(--panel-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download-button[data-pulse="true"] {
+    animation: none;
+  }
+
+  .saved-stamp,
+  .thumb-stamp {
+    animation: stamp-out 500ms ease-in 4.4s forwards;
+  }
+
+  .bar-thumb {
+    animation: none;
   }
 }
 
@@ -719,15 +853,12 @@ textarea {
     padding: 20px 16px 0;
   }
 
-  /* Download stays in thumb reach while the form is on screen. */
   .download-bar {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
     margin: 0 -16px;
-    padding: 12px 16px 12px;
-    background-color: var(--panel-bg);
-    border-top: 1px solid var(--panel-rule);
-    border-radius: 0 0 14px 14px;
+    padding: 12px 16px;
+  }
+
+  .app-title {
+    font-size: 22px;
   }
 }

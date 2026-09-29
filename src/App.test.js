@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import html2canvas from 'html2canvas';
 import App from './App';
 
@@ -80,4 +80,58 @@ test('ignores a cancelled file picker', () => {
   render(<App />);
   const fileInput = screen.getByLabelText(/image/i);
   expect(() => fireEvent.change(fileInput, { target: { files: [] } })).not.toThrow();
+});
+
+test('the number field only accepts up to four digits', () => {
+  render(<App />);
+  const numberInput = screen.getByLabelText('Number');
+  fireEvent.change(numberInput, { target: { value: '1e-2345' } });
+  expect(numberInput).toHaveValue('1234');
+});
+
+test('restores a saved draft instead of the sample card', () => {
+  localStorage.setItem('card-draft', JSON.stringify({
+    name: 'Good Boy', number: '7', group: 'rat', type: 'passive', description: 'Fetch.', imageSource: 'sample',
+  }));
+  render(<App />);
+  expect(screen.getByRole('heading', { name: '7 - Good Boy' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: 'Rat' })).toBeChecked();
+});
+
+test('autosaves edits to the draft', () => {
+  jest.useFakeTimers();
+  try {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Autosaved' } });
+    act(() => { jest.advanceTimersByTime(1000); });
+    expect(JSON.parse(localStorage.getItem('card-draft')).name).toBe('Autosaved');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('start fresh clears the card and can be undone', () => {
+  render(<App />);
+  fireEvent.click(screen.getByRole('button', { name: 'Start fresh' }));
+  expect(screen.getByLabelText(/name/i)).toHaveValue('');
+  expect(screen.getByText('No doggo yet.', { exact: false })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  expect(screen.getByRole('heading', { name: '382 - Scarlet Police' })).toBeInTheDocument();
+});
+
+test('after a download, next card keeps the group and type and bumps the number', async () => {
+  html2canvas.mockImplementation(() => Promise.resolve({ toBlob: (callback) => callback(new Blob(['png'])) }));
+  URL.createObjectURL = jest.fn(() => 'blob:card');
+  URL.revokeObjectURL = jest.fn();
+  jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+  render(<App />);
+  fireEvent.click(screen.getByRole('radio', { name: 'Pit' }));
+  fireEvent.click(screen.getByRole('button', { name: /download your epic dog card/i }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Next card (#383)' }));
+
+  expect(screen.getByLabelText('Number')).toHaveValue('383');
+  expect(screen.getByLabelText(/name/i)).toHaveValue('');
+  expect(screen.getByRole('radio', { name: 'Pit' })).toBeChecked();
+  expect(screen.getByRole('radio', { name: 'Active Card' })).toBeChecked();
 });

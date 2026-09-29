@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
+import { loadDraft, saveDraft, loadDraftImage, saveDraftImage, clearDraftImage } from './draftStore';
 import './App.css';
 
 const CARD_WIDTH = 407;
 const CARD_HEIGHT = 584;
 const STACKED_BREAKPOINT = 1000;
 const PAGE_GUTTER = 16;
-const PEEK_SCALE = 0.28;
+const THUMB_SCALE = 0.13;
+// Fixed export resolution (2x the 407x584 preview) so every device downloads the same size.
+const EXPORT_SCALE = 2;
 
 const MAX_DESC_FONT_SIZE = 28;
 const MIN_DESC_FONT_SIZE = 10;
@@ -18,6 +21,9 @@ const MIN_NAME_FONT_SIZE = 10;
 const MAX_NAME_WIDTH = 250;
 
 const SAVED_MESSAGE_MS = 5000;
+const UNDO_MS = 8000;
+const AUTOSAVE_DELAY_MS = 400;
+const DOG_GAME_URL = 'https://steamcommunity.com/sharedfiles/filedetails/?id=2919654479';
 
 // Label and printed colour for each group and type. The colour is used both on the
 // card and on the picker swatches, so this is the single source for both.
@@ -42,6 +48,42 @@ const types = {
 };
 
 const SAMPLE_IMAGE_NAME = 'Sample art (382.jpg)';
+const NO_IMAGE_NAME = 'No image yet';
+const SAMPLE_IMAGE_URL = `${process.env.PUBLIC_URL}/382.jpg`;
+
+// The example card shown on a first visit. `imageSource` is 'sample', 'upload' or 'none';
+// an uploaded image lives in IndexedDB (see draftStore.js), not in the draft itself.
+const SAMPLE_CARD = {
+  name: 'Scarlet Police',
+  number: '382',
+  group: '',
+  type: 'active',
+  description: 'Choose a player. They must return to their starting tile at the end of their turn until they move a cumulative 9 tiles, at which time this card is destroyed.',
+  imageSource: 'sample',
+  imageName: SAMPLE_IMAGE_NAME,
+};
+
+// Merge a stored draft over the sample, dropping anything malformed or no longer valid.
+const restoreCard = (draft) => {
+  if (!draft) return SAMPLE_CARD;
+  const text = (value, fallback) => (typeof value === 'string' ? value : fallback);
+  return {
+    name: text(draft.name, SAMPLE_CARD.name),
+    number: text(draft.number, SAMPLE_CARD.number).replace(/\D/g, '').slice(0, 4),
+    group: draft.group in groups ? draft.group : SAMPLE_CARD.group,
+    type: draft.type in types ? draft.type : SAMPLE_CARD.type,
+    description: text(draft.description, SAMPLE_CARD.description),
+    imageSource: ['sample', 'upload', 'none'].includes(draft.imageSource) ? draft.imageSource : 'sample',
+    imageName: text(draft.imageName, SAMPLE_IMAGE_NAME),
+  };
+};
+
+const cardTitle = (number, name) => [number, name.trim()].filter(Boolean).join(' - ');
+
+const downloadFileName = (number, name) => {
+  const safe = cardTitle(number, name).replace(/[\\/:*?"<>|]/g, '').trim();
+  return safe ? `${safe}.png` : 'card.png';
+};
 
 // Shrinks the element's font one pixel at a time from `max` until `fits` passes.
 // Returns the chosen size and whether it actually fits at that size.
@@ -97,14 +139,14 @@ function CardFace({ cardRef, nameRef, descriptionRef, number, name, group, type,
   return (
     <div className="card" ref={cardRef}>
       <div className="card-header">
-        <h2 className="card-name" ref={nameRef} style={{ fontSize: `${nameSize}px` }}>{number} - {name}</h2>
+        <h2 className="card-name" ref={nameRef} style={{ fontSize: `${nameSize}px` }}>{cardTitle(number, name)}</h2>
         {group && <p className="card-group" style={{ color: groups[group].color }}>{groups[group].label}</p>}
         {type && <p className="card-type" style={{ color: types[type].color }}>{types[type].label}</p>}
       </div>
       <div className="card-image-container">
         {image
           ? <img className='card-image' src={image} alt={name} />
-          : <p className="card-image-empty">No doggo yet.<br />Upload a pic below!</p>}
+          : <p className="card-image-empty">No doggo yet.<br />Choose an image to add one.</p>}
       </div>
       <p className="card-description" style={{ fontSize: `${descSize}px` }} ref={descriptionRef}>{description}</p>
     </div>
@@ -145,13 +187,21 @@ function ChipGroup({ legend, name, options, value, onChange, perRow }) {
 }
 
 function CardGenerator() {
-  const [name, setName] = useState('Scarlet Police');
-  const [number, setNumber] = useState(382);
-  const [image, setImage] = useState(`${process.env.PUBLIC_URL}/382.jpg`);
-  const [imageName, setImageName] = useState(SAMPLE_IMAGE_NAME);
-  const [description, setDescription] = useState('Choose a player. They must return to their starting tile at the end of their turn until they move a cumulative 9 tiles, at which time this card is destroyed.');
-  const [group, setGroup] = useState('');
-  const [type, setType] = useState('active');
+  const [savedDraft] = useState(loadDraft);
+  const [start] = useState(() => restoreCard(savedDraft));
+  const [name, setName] = useState(start.name);
+  const [number, setNumber] = useState(start.number);
+  const [imageSource, setImageSource] = useState(start.imageSource);
+  // An uploaded image loads asynchronously from IndexedDB, so it starts empty.
+  const [image, setImage] = useState(start.imageSource === 'sample' ? SAMPLE_IMAGE_URL : null);
+  const [imageName, setImageName] = useState(start.imageName);
+  const [description, setDescription] = useState(start.description);
+  const [group, setGroup] = useState(start.group);
+  const [type, setType] = useState(start.type);
+  // A restored draft counts as edited: it's the user's own work.
+  const [hasEdited, setHasEdited] = useState(!!savedDraft);
+  const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [undo, setUndo] = useState(null);
   const cardRef = useRef(null);
   const previewRef = useRef(null);
 
@@ -256,6 +306,87 @@ function CardGenerator() {
     return () => clearTimeout(timer);
   }, [downloadStatus]);
 
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+
+  // Bring back an uploaded image from the saved draft.
+  useEffect(() => {
+    if (savedDraft?.imageSource !== 'upload') return;
+    let cancelled = false;
+    loadDraftImage().then((dataUrl) => {
+      if (cancelled) return;
+      if (dataUrl) {
+        setImage(dataUrl);
+      } else {
+        setImageSource('none');
+        setImageName(NO_IMAGE_NAME);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [savedDraft]);
+
+  // Autosave once the user has changed something, so the sample card never becomes a draft.
+  useEffect(() => {
+    if (!hasEdited) return;
+    const timer = setTimeout(() => {
+      saveDraft({ name, number, group, type, description, imageSource, imageName });
+    }, AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [hasEdited, name, number, group, type, description, imageSource, imageName]);
+
+  // Wraps a setter so any change also marks the card as edited.
+  const edit = (setter) => (value) => {
+    setter(value);
+    setHasEdited(true);
+  };
+
+  const applyCard = (card) => {
+    setName(card.name);
+    setNumber(card.number);
+    setGroup(card.group);
+    setType(card.type);
+    setDescription(card.description);
+    setImage(card.image);
+    setImageSource(card.imageSource);
+    setImageName(card.imageName);
+    setImageError('');
+    setDownloadStatus('idle');
+    setHasEdited(true);
+    if (card.imageSource === 'upload') saveDraftImage(card.image);
+    else clearDraftImage();
+  };
+
+  // Replace the card, keeping the old one for a few seconds so the change can be undone.
+  const replaceCard = (next, message) => {
+    const previous = { name, number, group, type, description, image, imageSource, imageName };
+    applyCard(next);
+    setUndo({ previous, message });
+  };
+
+  const blankImage = { image: null, imageSource: 'none', imageName: NO_IMAGE_NAME };
+
+  const startFresh = () => {
+    replaceCard({ name: '', number: '', group: '', type: '', description: '', ...blankImage }, 'Card cleared.');
+  };
+
+  const nextNumber = number ? String(Number(number) + 1).slice(0, 4) : '';
+
+  const startNextCard = () => {
+    replaceCard(
+      { name: '', number: nextNumber, group, type, description: '', ...blankImage },
+      `Started card ${nextNumber ? `#${nextNumber}` : 'fresh'}, same group and type.`,
+    );
+  };
+
+  const handleUndo = () => {
+    if (!undo) return;
+    applyCard(undo.previous);
+    setUndo(null);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
   };
@@ -270,8 +401,12 @@ function CardGenerator() {
     setImageError('');
     const reader = new FileReader();
     reader.onload = (event) => {
-      setImage(event.target.result);
+      const dataUrl = event.target.result;
+      setImage(dataUrl);
+      setImageSource('upload');
       setImageName(file.name);
+      setHasEdited(true);
+      saveDraftImage(dataUrl);
     };
     reader.onerror = () => {
       setImageError(`Couldn't read "${file.name}". Try a different image.`);
@@ -289,6 +424,7 @@ function CardGenerator() {
     try {
       if (document.fonts) await document.fonts.ready;
       const canvas = await html2canvas(cardRef.current, {
+        scale: EXPORT_SCALE,
         // The on-screen preview may be scaled down on small screens; export at full size.
         onclone: (clonedDoc) => {
           const scaler = clonedDoc.querySelector('.preview .card-scaler');
@@ -298,7 +434,7 @@ function CardGenerator() {
       });
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('Canvas export returned no data');
-      const fileName = (name && number) ? `${number} - ${name}.png` : 'card.png';
+      const fileName = downloadFileName(number, name);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = fileName;
@@ -309,6 +445,7 @@ function CardGenerator() {
       setTimeout(() => URL.revokeObjectURL(url), 10000);
       setSavedFileName(fileName);
       setDownloadStatus('saved');
+      setHasDownloaded(true);
     } catch (error) {
       console.error(error);
       setDownloadStatus('error');
@@ -319,19 +456,20 @@ function CardGenerator() {
     idle: 'Download your epic dog card!!',
     rendering: 'Rendering your masterpiece...',
     saved: 'SAVED!!',
-    error: 'Download your epic dog card!!',
+    error: 'Try again!!',
   };
 
   const statusMessages = {
     idle: '',
-    rendering: '',
+    rendering: 'Rendering your card.',
     saved: `Show your creation to the fellas! Look for "${savedFileName}" in your downloads.`,
-    error: "Couldn't render the card. Try again, or refresh the page if it keeps failing.",
+    error: "Couldn't render the card. Your card is still here, so just press the button again.",
   };
 
   const isScaled = previewScale < 1;
   const cardProps = { number, name, group, type, image, description, nameSize, descSize };
   const descTooSmall = !descOverflow && descSize < SMALL_DESC_FONT_SIZE;
+  const showThumb = stacked && !previewInView;
 
   return (
     <div className="page">
@@ -351,6 +489,9 @@ function CardGenerator() {
         <section className="settings" aria-labelledby="app-title">
           <header className="settings-header">
             <h1 id="app-title" className="app-title">Dog Game Card Generator</h1>
+            <button type="button" className="text-button" onClick={startFresh}>
+              Start fresh
+            </button>
             <button
               type="button"
               className="theme-toggle"
@@ -367,16 +508,23 @@ function CardGenerator() {
               <div className="field-row">
                 <label className="field">
                   <span className="field-label">Name</span>
-                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} />
+                  <input type="text" value={name} onChange={(event) => edit(setName)(event.target.value)} />
                 </label>
                 <label className="field field--number">
                   <span className="field-label">Number</span>
-                  <input type="number" value={number} onChange={(event) => setNumber(event.target.value)} />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    value={number}
+                    onChange={(event) => edit(setNumber)(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                  />
                 </label>
               </div>
               {nameOverflow && <p className="field-note field-note--error" role="alert">Name and number are too long to fit. Shorten one of them.</p>}
-              <ChipGroup legend="Group" name="group" options={groups} perRow={4} value={group} onChange={(event) => setGroup(event.target.value)} />
-              <ChipGroup legend="Type" name="type" options={types} perRow={3} value={type} onChange={(event) => setType(event.target.value)} />
+              <ChipGroup legend="Group" name="group" options={groups} perRow={4} value={group} onChange={(event) => edit(setGroup)(event.target.value)} />
+              <ChipGroup legend="Type" name="type" options={types} perRow={3} value={type} onChange={(event) => edit(setType)(event.target.value)} />
             </fieldset>
 
             <fieldset className="form-section">
@@ -403,40 +551,69 @@ function CardGenerator() {
                   <span className="field-label">Description</span>
                   <span className="field-meta" aria-hidden="true">Card text: {descSize}px</span>
                 </span>
-                <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
+                <textarea value={description} onChange={(event) => edit(setDescription)(event.target.value)} />
               </label>
               {descOverflow && <p className="field-note field-note--error" role="alert">Too much text! It'll run off the card. Trim it down.</p>}
-              {descTooSmall && <p className="field-note field-note--caution">Getting tiny! Players might need a magnifying glass.</p>}
+              {descTooSmall && <p className="field-note field-note--caution" role="status">Getting tiny! Players might need a magnifying glass.</p>}
             </fieldset>
 
+            <details className="help">
+              <summary>Using your card in Tabletop Simulator</summary>
+              <p>
+                Downloads are {CARD_WIDTH * EXPORT_SCALE} × {CARD_HEIGHT * EXPORT_SCALE} px PNGs, twice the size of the
+                preview, so they stay sharp when zoomed in on the table.
+              </p>
+              <p>
+                For how DOG GAME uses custom cards, see the <a href={DOG_GAME_URL}>DOG GAME workshop page</a>.
+              </p>
+            </details>
+
             <div className="download-bar">
-              <button
-                type="button"
-                className="download-button"
-                data-status={downloadStatus}
-                onClick={handleDownload}
-                aria-disabled={downloadStatus === 'rendering'}
-              >
-                {downloadLabels[downloadStatus]}
-              </button>
+              <div className="download-row">
+                {showThumb && (
+                  <button type="button" className="bar-thumb" onClick={scrollToPreview} aria-label="Scroll up to the full card preview">
+                    <div className="card-scaler" style={{ transform: `scale(${THUMB_SCALE})` }} aria-hidden="true">
+                      <CardFace {...cardProps} />
+                    </div>
+                    {downloadStatus === 'saved' && <span className="thumb-stamp" aria-hidden="true">SAVED!</span>}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="download-button"
+                  data-status={downloadStatus}
+                  data-pulse={downloadStatus === 'idle' && hasEdited}
+                  onClick={handleDownload}
+                  aria-disabled={downloadStatus === 'rendering'}
+                >
+                  {downloadLabels[downloadStatus]}
+                </button>
+              </div>
               <p className={`download-status download-status--${downloadStatus}`} role="status">
                 {statusMessages[downloadStatus]}
               </p>
+              {(undo || hasDownloaded) && (
+                <div className="bar-actions">
+                  {undo && (
+                    <p className="undo-notice" role="status">
+                      {undo.message}{' '}
+                      <button type="button" className="text-button" onClick={handleUndo}>Undo</button>
+                    </p>
+                  )}
+                  {hasDownloaded && !undo && (
+                    <button type="button" className="secondary-button" onClick={startNextCard}>
+                      Next card{nextNumber ? ` (#${nextNumber})` : ''}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </form>
         </section>
       </main>
 
-      {stacked && !previewInView && (
-        <button type="button" className="preview-peek" onClick={scrollToPreview} aria-label="Scroll up to the full card preview">
-          <div className="card-scaler" style={{ transform: `scale(${PEEK_SCALE})` }} aria-hidden="true">
-            <CardFace {...cardProps} />
-          </div>
-        </button>
-      )}
-
       <footer className="footer">
-        <p>Made by Basbo for Sethja8's <a href='https://steamcommunity.com/sharedfiles/filedetails/?id=2919654479'>DOG GAME - A Tabletop Simulator game.</a></p>
+        <p>Made by Basbo for Sethja8's <a href={DOG_GAME_URL}>DOG GAME - A Tabletop Simulator game.</a></p>
         <p>Check out the <a href="https://github.com/brendanpayne/card-maker">source code</a>.</p>
       </footer>
     </div>
