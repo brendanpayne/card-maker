@@ -41,24 +41,47 @@ function CardGenerator() {
   }
 
   const handleDescriptionChange = (event) => {
-    setDescription(event.target.value);
-    const descriptionHeight = descriptionRef.current.clientHeight;
-    if (descriptionHeight > 125) {
-      setDescSize(descSize - 1);
-    } else if (descriptionHeight < 99 && descSize < MAX_DESC_FONT_SIZE) {
-      setDescSize(descSize + 1);
+    const value = event.target.value;
+    setDescription(value);
+
+    if (value.length === 0) {
+      setDescSize(MAX_DESC_FONT_SIZE);
+      return;
     }
+
+    requestAnimationFrame(() => {
+      const descriptionHeight = descriptionRef.current?.clientHeight ?? 0;
+
+      setDescSize((s) => {
+        if (descriptionHeight > 125) return s - 1;
+
+        if (descriptionHeight < 99 && s < MAX_DESC_FONT_SIZE)
+          return s + 1;
+
+        return s;
+      });
+    });
   };
 
+
   const handleNameChange = (event) => {
-    setName(event.target.value);
-    const nameWidth = nameRef.current.clientWidth;
-    if (nameWidth > 275) {
-      setNameSize(nameSize - 1);
-    } else if (nameWidth < 265 && nameSize < MAX_NAME_FONT_SIZE) {
-      setNameSize(nameSize + 1);
+    const value = event.target.value;
+    setName(value);
+    if (value.length === 0) {
+      setNameSize(MAX_NAME_FONT_SIZE);
+      return;
     }
+    requestAnimationFrame(() => {
+      const nameWidth = nameRef.current?.clientWidth ?? 0;
+      const BOX = 250;
+      setNameSize((s) => {
+        if (nameWidth > BOX) return s - 1;          
+        if (s < MAX_NAME_FONT_SIZE) return s + 1;   
+        return s;          
+      });
+    });
   };
+
 
   const handleDownload = () => {
     html2canvas(cardRef.current).then((canvas) => {
