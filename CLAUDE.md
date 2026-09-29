@@ -12,6 +12,10 @@ Single-page Create React App (react-scripts 5, React 18) that generates trading 
 - `npm run build`: production build into `build/`
 - `npm test`: Jest in watch mode. Run once with `npm test -- --watchAll=false`, or run one test with `npm test -- -t "<name>"`.
 - Linting uses CRA's built-in ESLint (`react-app` config) and runs during `start` and `build`. There is no separate lint script.
+- Deployment: `.github/workflows/deploy.yml` builds and deploys to GitHub Pages on every push to `master`.
+  - It runs the tests and a `CI=true` build, which treats lint warnings as errors, so a warning blocks the deploy.
+  - The custom domain `doggame.thememecult.com` is set in the repo's Pages settings, not with a `CNAME` file; Actions deployments ignore `CNAME` files.
+  - `homepage` in `package.json` must stay at the domain root, or asset paths break.
 
 ## AI policy
 
