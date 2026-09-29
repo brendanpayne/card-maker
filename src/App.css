@@ -752,36 +752,6 @@ textarea {
   background-color: var(--toggle-hover-bg);
 }
 
-/* ---- Tabletop Simulator help ---- */
-
-.help {
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--panel-muted);
-}
-
-.help summary {
-  width: fit-content;
-  padding: 4px 0;
-  font-weight: 600;
-  color: var(--panel-text);
-  cursor: pointer;
-}
-
-.help summary:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.help p {
-  margin: 6px 0 0;
-}
-
-.help a {
-  color: var(--panel-text);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .download-button[data-pulse="true"] {
     animation: none;

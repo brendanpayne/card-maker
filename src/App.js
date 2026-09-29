@@ -773,17 +773,6 @@ function CardGenerator() {
               {descTooSmall && <p className="field-note field-note--caution" role="status">Getting tiny! Players might need a magnifying glass.</p>}
             </fieldset>
 
-            <details className="help">
-              <summary>Using your card in Tabletop Simulator</summary>
-              <p>
-                Downloads are {CARD_WIDTH * EXPORT_SCALE} × {CARD_HEIGHT * EXPORT_SCALE} px PNGs, twice the size of the
-                preview, so they stay sharp when zoomed in on the table.
-              </p>
-              <p>
-                For how DOG GAME uses custom cards, see the <a href={DOG_GAME_URL}>DOG GAME workshop page</a>.
-              </p>
-            </details>
-
             <div className="download-bar">
               <div className="download-row">
                 {showThumb && (
