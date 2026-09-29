@@ -2,6 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Apply the saved or device theme before first paint. Keep in sync with the theme logic in src/App.js. -->
+    <script>
+      (function () {
+        var theme;
+        try { theme = localStorage.getItem('theme'); } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <!-- Primary Meta Tags -->
     <title>Dog Game Card Generator</title>

@@ -1,13 +1,50 @@
+/* Page and panel colours. The card itself never uses these: it is exported artwork. */
+:root {
+  color-scheme: light;
+  --panel-bg: #ffffff;
+  --panel-text: #1a1a1a;
+  --panel-shadow: rgba(0, 0, 0, 0.6);
+  --input-bg: #ffffff;
+  --input-text: #1a1a1a;
+  --input-border: #cccccc;
+  --toggle-bg: #f0eef2;
+  --toggle-hover-bg: #e2dee6;
+  --warning: #7E070B;
+  --focus: #1B8031;
+  --footer-bg: rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --panel-bg: #1e1b22;
+  --panel-text: #f1edf5;
+  --panel-shadow: rgba(0, 0, 0, 0.8);
+  --input-bg: #2a2630;
+  --input-text: #f1edf5;
+  --input-border: #4d4756;
+  --toggle-bg: #2a2630;
+  --toggle-hover-bg: #3a3542;
+  --warning: #ff9b9b;
+  --focus: #6fe08a;
+  --footer-bg: rgba(0, 0, 0, 0.65);
+}
+
 html, body {
   height: 100%;
 }
 
 body {
   display: flex;
+  background-color: #2a2630;
   background-image: url('../public/bg.png');
   background-size: cover;
   background-position: center;
   flex-direction: column;
+}
+
+:root[data-theme="dark"] body {
+  background-color: #111013;
+  background-image: linear-gradient(rgba(10, 8, 14, 0.6), rgba(10, 8, 14, 0.6)), url('../public/bg.png');
 }
 
 .container {
@@ -25,9 +62,42 @@ body {
   min-width: 500px;
   padding: 24px;
   box-sizing: border-box;
-  background-color: white;
+  color: var(--panel-text);
+  background-color: var(--panel-bg);
   border-radius: 12px;
-  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 20px var(--panel-shadow);
+}
+
+.settings-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-self: stretch;
+  margin-bottom: 8px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+  background-color: var(--toggle-bg);
+  color: var(--panel-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background-color: var(--toggle-hover-bg);
+}
+
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 form {
@@ -48,7 +118,9 @@ select,
 textarea {
   padding: 8px;
   border-radius: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--input-text);
   font-size: 16px;
   margin-top: 4px;
   white-space: pre-wrap;
@@ -60,19 +132,7 @@ textarea {
   resize: none;
 }
 
-button[type="submit"],
-button[type="button"] {
-  padding: 8px 16px;
-  border-radius: 4px;
-  border: none;
-  background-color: #0077cc;
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
-  margin-top: 12px;
-}
-
-button[type="download"] {
+.download-button {
   background-color: #4CAF50; /* Green */
   border: none;
   color: white;
@@ -85,6 +145,39 @@ button[type="download"] {
   cursor: pointer;
   border-radius: 8px;
   animation: pulse 1s infinite;
+}
+
+.download-button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.download-button:disabled {
+  animation: none;
+  cursor: progress;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download-button {
+    animation: none;
+  }
+}
+
+.download-status {
+  min-height: 1.25em;
+  margin: 8px 0 0;
+  color: var(--warning);
+  font-size: 14px;
+  text-align: center;
+}
+
+.field-warning {
+  margin-top: 4px;
+  color: var(--warning);
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 350px;
 }
 
 @keyframes pulse {
@@ -117,6 +210,9 @@ button[type="download"] {
   background-position: center;
   width: 407px;
   height: 584px;
+  /* Pin the card's colours so the page theme never reaches the exported artwork. */
+  color-scheme: light;
+  color: #000;
   display: flex;
   flex-direction: column;
   
@@ -229,6 +325,25 @@ button[type="download"] {
   object-fit: cover;
 }
 
+.card-image-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+  font-family: 'KOMTIT', sans-serif;
+  font-size: 22px;
+  line-height: 1.2;
+  text-align: center;
+  color: #404040;
+}
+
+.card-scaler {
+  transform-origin: top left;
+}
+
 .footer {
   position: absolute;
   bottom: 0;
@@ -238,7 +353,7 @@ button[type="download"] {
   font-size: 12px;
   color: #fff;
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: var(--footer-bg);
 }
 
 .footer a {
@@ -248,4 +363,50 @@ button[type="download"] {
 
 .footer a:hover {
   text-decoration: underline;
+}
+
+/* Keep in sync with STACKED_BREAKPOINT in App.js. */
+@media (max-width: 999px) {
+  .container {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 16px;
+    height: auto;
+    min-height: 100vh;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .card-container {
+    display: block;
+    margin: 0;
+  }
+
+  .settings {
+    width: 100%;
+    max-width: 500px;
+    min-width: 0;
+    padding: 16px;
+  }
+
+  form {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Centered at its natural width so the pulse never overflows the screen edge. */
+  .download-button {
+    align-self: center;
+    padding: 15px 16px;
+  }
+
+  .footer {
+    position: static;
+    padding: 8px 16px;
+  }
 }
