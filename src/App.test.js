@@ -57,11 +57,23 @@ test('pressing Enter in a field does not download the card', () => {
   expect(html2canvas).not.toHaveBeenCalled();
 });
 
-test('shows a busy state while the card renders', async () => {
+test('shows a busy state while the card renders and ignores repeat clicks', async () => {
   render(<App />);
   fireEvent.click(screen.getByRole('button', { name: /download your epic dog card/i }));
   const button = await screen.findByRole('button', { name: /rendering/i });
-  expect(button).toBeDisabled();
+  // aria-disabled rather than disabled, so keyboard focus stays on the button.
+  expect(button).toHaveAttribute('aria-disabled', 'true');
+  fireEvent.click(button);
+  expect(html2canvas).toHaveBeenCalledTimes(1);
+});
+
+test('picking a group chip updates the card in that group colour', () => {
+  render(<App />);
+  expect(screen.getByRole('radio', { name: 'Basic' })).toBeChecked();
+  fireEvent.click(screen.getByRole('radio', { name: 'Bushido' }));
+  const groupLine = document.querySelector('.card-group');
+  expect(groupLine).toHaveTextContent('Bushido');
+  expect(groupLine).toHaveStyle({ color: '#1B8031' });
 });
 
 test('ignores a cancelled file picker', () => {
