@@ -8,6 +8,10 @@ Trading Card Maker is a web application created for a friend's tabletop simulato
 - Upload your own images or choose from a selection of pre-made images
 - Download your custom trading card as a PNG image
 
+## AI Usage
+
+AI-assisted contributions are welcome. See [`AI_POLICY.md`](AI_POLICY.md) for the rules on disclosure, review, and assets.
+
 ## License
 
 Trading Card Maker is licensed under the MIT License. See `LICENSE` for more information.
