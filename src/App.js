@@ -616,6 +616,10 @@ function CardGenerator() {
       if (document.fonts) await document.fonts.ready;
       const canvas = await html2canvas(cardRef.current, {
         scale: EXPORT_SCALE,
+        // html2canvas rounds the frame's background to whole pixels but starts the canvas at the
+        // card's fractional page position, leaving up to a 1px strip uncovered. Fill the canvas
+        // with the frame's black edge colour so that strip doesn't show as white.
+        backgroundColor: '#000',
         // The on-screen preview may be scaled down on small screens; export at full size.
         onclone: (clonedDoc) => {
           const scaler = clonedDoc.querySelector('.preview .card-scaler');
